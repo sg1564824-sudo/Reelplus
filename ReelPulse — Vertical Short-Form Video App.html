@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ReelPulse — Short-Form Video Feed</title>
+
+  <!-- Load Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Load Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Load Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Load Tone.js for subtle tactile UI/audio feedback -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+          colors: {
+            pulse: {
+              bg: '#09090b',
+              surface: '#141418',
+              card: '#1b1b21',
+              accent: '#ff2e55',
+              accentHover: '#ff4769',
+            },
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    /* Base reset and smooth scrolling */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: #09090b;
+      color: #f4f4f5;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Hide scrollbars on snap feed and horizontal pills */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Vertical snap scroll container */
+    .snap-feed {
+      scroll-snap-type: y mandatory;
+      overflow-y: scroll;
+      scroll-behavior: smooth;
+    }
+    .snap-card {
+      scroll-snap-align: start;
+      scroll-snap-stop: always;
+    }
+
+    /* Animated visual scene layers */
+    @keyframes floatSlow {
+      0%, 100% { transform: translate(0px, 0px) scale(1); }
+      50% { transform: translate(18px, -24px) scale(1.08); }
+    }
+    @keyframes floatReverse {
+      0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+      50% { transform: translate(-22px, 18px) rotate(12deg); }
+    }
+    @keyframes pulseRing {
+      0% { transform: scale(0.88); opacity: 0.65; }
+      50% { transform: scale(1.12); opacity: 0.25; }
+      100% { transform: scale(0.88); opacity: 0.65; }
+    }
+    @keyframes spinVinyl {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes heartPop {
+      0% { transform: scale(0.4); opacity: 0; }
+      40% { transform: scale(1.22); opacity: 1; }
+      70% { transform: scale(0.95); opacity: 1; }
+      100% { transform: scale(1.45); opacity: 0; }
+    }
+    @keyframes eqBar {
+      0%, 100% { height: 25%; }
+      50% { height: 100%; }
+    }
+
+    .anim-float-slow {
+      animation: floatSlow 9s ease-in-out infinite;
+    }
+    .anim-float-reverse {
+      animation: floatReverse 11s ease-in-out infinite;
+    }
+    .anim-pulse-ring {
+      animation: pulseRing 4.5s ease-in-out infinite;
+    }
+    .anim-spin-vinyl {
+      animation: spinVinyl 7s linear infinite;
+    }
+    .anim-paused {
+      animation-play-state: paused !important;
+    }
+    .anim-heart-pop {
+      animation: heartPop 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    .eq-bar {
+      animation: eqBar 0.8s ease-in-out infinite;
+    }
+  </style>
+</head>
+
+<body class="bg-pulse-bg text-zinc-100 antialiased overflow-hidden select-none">
+  <!-- App Root -->
+  <div id="app" class="h-screen w-full flex flex-col md:flex-row bg-pulse-bg overflow-hidden">
+
+    <!-- Desktop Left Navigation Rail -->
+    <aside class="hidden md:flex md:w-64 lg:w-72 flex-col justify-between border-r border-zinc-800/80 bg-zinc-950/90 px-4 py-6 z-30 shrink-0">
+      <div>
+        <!-- Brand Logo -->
+        <button onclick="switchTab('feed')" class="flex items-center gap-3 px-2 mb-8 text-left group focus:outline-none">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-600 via-pink-500 to-amber-400 flex items-center justify-center shadow-lg shadow-rose-600/25 group-hover:scale-105 transition-transform">
+            <i data-lucide="zap" class="w-5 h-5 text-white fill-white"></i>
+          </div>
+          <div>
+            <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent">
+              ReelPulse
+            </span>
+            <p class="text-[11px] font-medium text-rose-400 tracking-wide uppercase">Shorts Studio</p>
+          </div>
+        </button>
+
+        <!-- Nav Links -->
+        <nav class="space-y-1.5" aria-label="Primary Navigation">
+          <button id="desk-nav-feed" onclick="switchTab('feed')" class="w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-semibold transition-all bg-zinc-900 text-white">
+            <i data-lucide="flame" class="w-5 h-5 text-rose-500"></i>
+            <span>Feed</span>
+          </button>
+          <button id="desk-nav-explore" onclick="switchTab('explore')" class="w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-900/60 transition-all">
+            <i data-lucide="compass" class="w-5 h-5"></i>
+            <span>Explore</span>
+          </button>
+          <button id="desk-nav-create" onclick="openCreateModal()" class="w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-900/60 transition-all">
+            <i data-lucide="plus-circle" class="w-5 h-5"></i>
+            <span>Create</span>
+          </button>
+          <button id="desk-nav-profile" onclick="switchTab('profile')" class="w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-900/60 transition-all">
+            <i data-lucide="user-circle-2" class="w-5 h-5"></i>
+            <span>Profile</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Creator Status Card -->
+      <div class="p-3.5 rounded-2xl bg-gradient-to-br from-zinc-900 to-zinc-900/50 border border-zinc-800/80">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-xs font-semibold text-zinc-300">Sound Engine</span>
+          <span id="audio-status-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 font-medium">Muted</span>
+        </div>
+        <p class="text-xs text-zinc-500 leading-relaxed">
+          Tap any short to play/pause, double-tap to like, or use ↑ / ↓ keys to scroll.
+        </p>
+      </div>
+    </aside>
+
+    <!-- Main Viewport Area -->
+    <main class="relative flex-1 flex flex-col h-full overflow-hidden">
+
+      <!-- Floating Top Bar (Category Pills + Quick Audio/Nav) -->
+      <header id="top-category-bar" class="absolute top-0 inset-x-0 z-20 px-3 sm:px-6 pt-3 pb-2 bg-gradient-to-b from-black/80 via-black/45 to-transparent pointer-events-none">
+        <div class="max-w-3xl mx-auto flex items-center justify-between gap-2 pointer-events-auto">
+          <!-- Mobile Brand Mark -->
+          <div class="flex md:hidden items-center gap-1.5 shrink-0 bg-black/50 backdrop-blur-md px-2.5 py-1.5 rounded-full border border-white/10">
+            <i data-lucide="zap" class="w-4 h-4 text-rose-500 fill-rose-500"></i>
+            <span class="text-xs font-extrabold tracking-tight text-white">ReelPulse</span>
+          </div>
+
+          <!-- Category Filter Pills -->
+          <div id="category-pills" class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+            <!-- Populated via JS -->
+          </div>
+
+          <!-- Quick Prev/Next on Desktop -->
+          <div class="hidden md:flex items-center gap-1.5 shrink-0">
+            <button onclick="scrollStep(-1)" title="Previous Short (ArrowUp)" class="p-2 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-white/10 backdrop-blur-md transition">
+              <i data-lucide="chevron-up" class="w-4 h-4"></i>
+            </button>
+            <button onclick="scrollStep(1)" title="Next Short (ArrowDown)" class="p-2 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-white/10 backdrop-blur-md transition">
+              <i data-lucide="chevron-down" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- VIEW 1: VERTICAL SHORT-FORM FEED -->
+      <section id="view-feed" class="snap-feed flex-1 w-full h-full relative">
+        <div id="feed-track" class="w-full h-full flex flex-col items-center">
+          <!-- Video cards rendered via JS -->
+        </div>
+      </section>
+
+      <!-- VIEW 2: EXPLORE VIEW -->
+      <section id="view-explore" class="hidden flex-1 w-full h-full overflow-y-auto no-scrollbar pt-16 pb-24 md:pb-10 px-4 sm:px-8">
+        <div class="max-w-5xl mx-auto">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+            <div>
+              <h1 class="text-2xl font-extrabold tracking-tight text-white">Explore Trending Shorts</h1>
+              <p class="text-sm text-zinc-400">Jump straight into high-energy clips across creators and categories.</p>
+            </div>
+            <div class="relative w-full sm:w-64">
+              <i data-lucide="search" class="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+              <input
+                id="explore-search"
+                type="text"
+                oninput="renderExploreGrid()"
+                placeholder="Search creator or topic..."
+                class="w-full pl-9 pr-3.5 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500"
+              />
+            </div>
+          </div>
+
+          <div id="explore-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-5">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 3: PROFILE VIEW -->
+      <section id="view-profile" class="hidden flex-1 w-full h-full overflow-y-auto no-scrollbar pt-16 pb-24 md:pb-10 px-4 sm:px-8">
+        <div class="max-w-4xl mx-auto">
+          <!-- Profile Header Card -->
+          <div class="p-5 sm:p-6 rounded-3xl bg-zinc-900/80 border border-zinc-800/80 mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div class="flex items-center gap-4">
+                <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-rose-500 via-fuchsia-500 to-amber-400 flex items-center justify-center text-2xl font-extrabold text-white shadow-lg">
+                  RP
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h1 class="text-xl sm:text-2xl font-extrabold text-white">Aarav Studio</h1>
+                    <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30">Creator</span>
+                  </div>
+                  <p class="text-sm text-zinc-400">@aarav.creates • Nagpur, India</p>
+                  <p class="text-xs text-zinc-400 mt-1">Building fast tools, 11th grind tips, and sharp short-form visuals.</p>
+                </div>
+              </div>
+              <button onclick="openCreateModal()" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-semibold transition shadow-lg shadow-rose-600/20">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>New Short</span>
+              </button>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="grid grid-cols-3 gap-3 mt-6 pt-5 border-t border-zinc-800/80 text-center">
+              <div class="p-2.5 rounded-2xl bg-zinc-950/60">
+                <p id="stat-following" class="text-lg sm:text-xl font-extrabold text-white">0</p>
+                <p class="text-xs text-zinc-400">Following</p>
+              </div>
+              <div class="p-2.5 rounded-2xl bg-zinc-950/60">
+                <p id="stat-liked" class="text-lg sm:text-xl font-extrabold text-white">0</p>
+                <p class="text-xs text-zinc-400">Liked Shorts</p>
+              </div>
+              <div class="p-2.5 rounded-2xl bg-zinc-950/60">
+                <p id="stat-created" class="text-lg sm:text-xl font-extrabold text-white">0</p>
+                <p class="text-xs text-zinc-400">Your Shorts</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Profile Sub-Tabs -->
+          <div class="flex items-center gap-2 mb-4 border-b border-zinc-800/80 pb-3">
+            <button id="prof-tab-liked" onclick="setProfileTab('liked')" class="px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold bg-white text-zinc-950 transition">
+              Liked Shorts
+            </button>
+            <button id="prof-tab-created" onclick="setProfileTab('created')" class="px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold bg-zinc-900 text-zinc-400 hover:text-white transition">
+              Created by You
+            </button>
+            <button id="prof-tab-following" onclick="setProfileTab('following')" class="px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold bg-zinc-900 text-zinc-400 hover:text-white transition">
+              Followed Channels
+            </button>
+          </div>
+
+          <div id="profile-content" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Mobile Bottom Navigation Bar -->
+      <nav aria-label="Mobile Navigation" class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-zinc-950/95 backdrop-blur-xl border-t border-zinc-800/80 px-2 py-1.5 flex items-center justify-around">
+        <button id="mob-nav-feed" onclick="switchTab('feed')" class="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-white">
+          <i data-lucide="flame" class="w-5 h-5 text-rose-500"></i>
+          <span class="text-[11px] font-semibold">Feed</span>
+        </button>
+        <button id="mob-nav-explore" onclick="switchTab('explore')" class="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-zinc-400">
+          <i data-lucide="compass" class="w-5 h-5"></i>
+          <span class="text-[11px] font-medium">Explore</span>
+        </button>
+        <button onclick="openCreateModal()" class="flex flex-col items-center justify-center px-3 py-1 rounded-2xl bg-gradient-to-r from-rose-600 to-pink-500 text-white shadow-md shadow-rose-600/30">
+          <i data-lucide="plus" class="w-5 h-5"></i>
+        </button>
+        <button id="mob-nav-profile" onclick="switchTab('profile')" class="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-zinc-400">
+          <i data-lucide="user-circle-2" class="w-5 h-5"></i>
+          <span class="text-[11px] font-medium">Profile</span>
+        </button>
+      </nav>
+    </main>
+  </div>
+
+  <!-- COMMENT DRAWER / MODAL -->
+  <div id="comment-modal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-sm p-0 sm:p-4" onclick="handleBackdropClick(event, 'comment-modal')">
+    <div class="w-full sm:max-w-md bg-zinc-900 border border-zinc-800 rounded-t-3xl sm:rounded-3xl max-h-[82vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
+        <div>
+          <h2 class="text-base font-bold text-white">Comments</h2>
+          <p id="comment-modal-subtitle" class="text-xs text-zinc-400">0 comments</p>
+        </div>
+        <button onclick="closeModal('comment-modal')" class="p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div id="comment-list" class="flex-1 overflow-y-auto px-5 py-4 space-y-3.5">
+        <!-- Comments rendered via JS -->
+      </div>
+
+      <form id="comment-form" onsubmit="submitComment(event)" class="p-3.5 border-t border-zinc-800 bg-zinc-950/70 flex items-center gap-2.5">
+        <input
+          id="comment-input"
+          type="text"
+          required
+          maxlength="240"
+          placeholder="Add a sharp comment..."
+          class="flex-1 px-4 py-2.5 rounded-full bg-zinc-900 border border-zinc-700/80 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500"
+        />
+        <button type="submit" class="p-2.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white transition shrink-0">
+          <i data-lucide="send" class="w-4 h-4"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- CREATE / UPLOAD SHORT MODAL -->
+  <div id="create-modal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-sm p-0 sm:p-4" onclick="handleBackdropClick(event, 'create-modal')">
+    <div class="w-full sm:max-w-lg bg-zinc-900 border border-zinc-800 rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
+        <div class="flex items-center gap-2">
+          <i data-lucide="sparkles" class="w-5 h-5 text-rose-500"></i>
+          <h2 class="text-base font-bold text-white">Create New Short</h2>
+        </div>
+        <button onclick="closeModal('create-modal')" class="p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="create-form" onsubmit="handleCreateShort(event)" class="p-5 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-zinc-300 mb-1.5">Headline / Hook</label>
+          <input
+            id="create-headline"
+            type="text"
+            required
+            maxlength="80"
+            placeholder="e.g., 3 Python Tricks That Save Hours"
+            class="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500"
+          />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label class="block text-xs font-semibold text-zinc-300 mb-1.5">Category</label>
+            <select id="create-category" class="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-sm text-white focus:outline-none focus:border-rose-500">
+              <option value="Tech & AI">Tech & AI</option>
+              <option value="Gaming">Gaming</option>
+              <option value="Hustle & Finance">Hustle & Finance</option>
+              <option value="Lifestyle">Lifestyle</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-zinc-300 mb-1.5">Visual Theme</label>
+            <select id="create-theme" class="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-sm text-white focus:outline-none focus:border-rose-500">
+              <option value="cyber">Cyber Neon Pulse</option>
+              <option value="solar">Solar Flare Rush</option>
+              <option value="emerald">Emerald Grid Flow</option>
+              <option value="violet">Hyper Violet Wave</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-zinc-300 mb-1.5">Caption & Tags</label>
+          <textarea
+            id="create-caption"
+            rows="2"
+            required
+            maxlength="200"
+            placeholder="Write a punchy caption with hashtags..."
+            class="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 resize-none"
+          ></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-zinc-300 mb-1.5">Audio Track Name</label>
+          <input
+            id="create-sound"
+            type="text"
+            maxlength="60"
+            placeholder="Midnight Synth Beat — Original"
+            class="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500"
+          />
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-2.5">
+          <button type="button" onclick="closeModal('create-modal')" class="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-sm font-semibold text-zinc-200 transition">
+            Cancel
+          </button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-pink-500 hover:from-rose-500 hover:to-pink-400 text-sm font-bold text-white shadow-lg shadow-rose-600/25 transition">
+            Publish Short
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION BANNER -->
+  <div id="toast" class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-zinc-900/95 border border-zinc-700/80 text-white text-xs sm:text-sm font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 transition-all">
+    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+    <span id="toast-text">Link copied!</span>
+  </div>
+
+  <script>
+    /**
+     * ReelPulse Application State & Logic
+     * Single-file vertical short-form video experience with mock animated motion scenes,
+     * interactive engagement (like, comment, share, subscribe), category filtering,
+     * creation flow, explore view, profile view, and synthesized audio pulse.
+     */
+
+    const CATEGORIES = ['All', 'Tech & AI', 'Gaming', 'Hustle & Finance', 'Lifestyle'];
+
+    const VISUAL_THEMES = {
+      cyber: {
+        gradient: 'from-indigo-950 via-fuchsia-950 to-rose-950',
+        orb1: 'bg-cyan-400/30',
+        orb2: 'bg-fuchsia-500/35',
+        accentText: 'text-cyan-300',
+        badgeBg: 'bg-cyan-500/15 border-cyan-400/30 text-cyan-200',
+        tempo: 128,
+        notes: ['C4', 'Eb4', 'G4', 'Bb4']
+      },
+      solar: {
+        gradient: 'from-amber-950 via-orange-950 to-rose-950',
+        orb1: 'bg-amber-400/30',
+        orb2: 'bg-rose-500/35',
+        accentText: 'text-amber-300',
+        badgeBg: 'bg-amber-500/15 border-amber-400/30 text-amber-200',
+        tempo: 118,
+        notes: ['D4', 'F#4', 'A4', 'C#5']
+      },
+      emerald: {
+        gradient: 'from-emerald-950 via-teal-950 to-slate-950',
+        orb1: 'bg-emerald-400/30',
+        orb2: 'bg-teal-400/30',
+        accentText: 'text-emerald-300',
+        badgeBg: 'bg-emerald-500/15 border-emerald-400/30 text-emerald-200',
+        tempo: 110,
+        notes: ['E4', 'G4', 'B4', 'D5']
+      },
+      violet: {
+        gradient: 'from-violet-950 via-purple-950 to-zinc-950',
+        orb1: 'bg-violet-400/35',
+        orb2: 'bg-pink-500/30',
+        accentText: 'text-violet-300',
+        badgeBg: 'bg-violet-500/15 border-violet-400/30 text-violet-200',
+        tempo: 124,
+        notes: ['A3', 'C4', 'E4', 'G4']
+      }
+    };
+
+    const INITIAL_SHORTS = [
+      {
+        id: 'vid-1',
+        creator: 'Rohan Tech Lab',
+        handle: '@rohantechlab',
+        avatarText: 'RT',
+        avatarGradient: 'from-cyan-500 to-blue-600',
+        category: 'Tech & AI',
+        theme: 'cyber',
+        headline: 'Local AI Agents Running 100% Offline',
+        caption: 'No cloud latency, zero API bills — run fast open models right on your machine. #AI #Tech #Coding',
+        sound: 'Cyber Drift — Synthwave Loop',
+        durationSec: 18,
+        likes: 18420,
+        shares: 940,
+        userCreated: false,
+        comments: [
+          { author: '@dev_karan', text: 'Tried this setup yesterday, super smooth!' },
+          { author: '@nisha_ai', text: 'Latency drop is crazy good.' }
+        ]
+      },
+      {
+        id: 'vid-2',
+        creator: 'Hustle Ledger',
+        handle: '@hustleledger',
+        avatarText: 'HL',
+        avatarGradient: 'from-amber-500 to-orange-600',
+        category: 'Hustle & Finance',
+        theme: 'solar',
+        headline: 'Rule of 50/30/20 When Starting Out',
+        caption: 'Track every rupee before scaling — small daily leaks sink big goals fast. #Finance #Hustle #Money',
+        sound: 'Golden Hour Groove — Lo-Fi',
+        durationSec: 20,
+        likes: 24910,
+        shares: 1520,
+        userCreated: false,
+        comments: [
+          { author: '@vikas_trades', text: 'Tracking daily expenses changed everything for me.' }
+        ]
+      },
+      {
+        id: 'vid-3',
+        creator: 'Apex Reflex',
+        handle: '@apexreflex',
+        avatarText: 'AR',
+        avatarGradient: 'from-fuchsia-500 to-rose-600',
+        category: 'Gaming',
+        theme: 'violet',
+        headline: '144Hz vs 240Hz Flick Precision',
+        caption: 'Why frame pacing and clean crosshair discipline beat blind spray every round. #Gaming #FPS #ProTips',
+        sound: 'Hyper Rush — Arcade Bass',
+        durationSec: 16,
+        likes: 31200,
+        shares: 2110,
+        userCreated: false,
+        comments: [
+          { author: '@ clutch_sid', text: 'Crosshair placement at head level is king.' },
+          { author: '@riya_plays', text: 'That 1v3 clutch at the end 🔥' }
+        ]
+      },
+      {
+        id: 'vid-4',
+        creator: 'Calm Habit Club',
+        handle: '@calmhabitclub',
+        avatarText: 'CH',
+        avatarGradient: 'from-emerald-500 to-teal-600',
+        category: 'Lifestyle',
+        theme: 'emerald',
+        headline: '60-Minute No-Phone Morning Reset',
+        caption: 'Sunlight, water, and one focused priority before checking any notifications. #Lifestyle #Focus #Routine',
+        sound: 'Morning Dew — Ambient Pulse',
+        durationSec: 22,
+        likes: 15680,
+        shares: 780,
+        userCreated: false,
+        comments: [
+          { author: '@ananya_vibes', text: 'Needed this reminder today.' }
+        ]
+      },
+      {
+        id: 'vid-5',
+        creator: 'ScriptForge',
+        handle: '@scriptforge',
+        avatarText: 'SF',
+        avatarGradient: 'from-indigo-500 to-purple-600',
+        category: 'Tech & AI',
+        theme: 'violet',
+        headline: 'Automate Boring Files in 15 Lines',
+        caption: 'Clean up cluttered folders automatically with a tiny Python script. #Python #Automation #Dev',
+        sound: 'Code & Chill — Pulse Beat',
+        durationSec: 19,
+        likes: 12940,
+        shares: 615,
+        userCreated: false,
+        comments: []
+      }
+    ];
+
+    const state = {
+      shorts: [...INITIAL_SHORTS],
+      activeCategory: 'All',
+      activeTab: 'feed', // 'feed' | 'explore' | 'profile'
+      profileTab: 'liked', // 'liked' | 'created' | 'following'
+      likedIds: new Set(['vid-1']),
+      subscribedHandles: new Set(['@rohantechlab']),
+      isMuted: true,
+      isPaused: false,
+      activeVideoId: 'vid-1',
+      progressMap: {}, // id -> 0..100
+      commentModalVideoId: null,
+      audioInitialized: false,
+      synth: null,
+      audioLoopTimer: null,
+      noteStep: 0
+    };
+
+    // Initialize progress values
+    state.shorts.forEach(s => {
+      state.progressMap[s.id] = 0;
+    });
+
+    /**
+     * Format numbers cleanly (e.g., 18420 -> 18.4K)
+     */
+    function formatCount(num) {
+      if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+      if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+      return String(num);
+    }
+
+    /**
+     * Show non-blocking toast notification
+     */
+    let toastTimeout = null;
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      const toastText = document.getElementById('toast-text');
+      toastText.textContent = message;
+      toast.classList.remove('hidden');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 2200);
+    }
+
+    /**
+     * Initialize Tone.js synth for subtle sound & beat pulse when unmuted
+     */
+    async function initAudioEngine() {
+      if (state.audioInitialized) return;
+      try {
+        if (typeof Tone !== 'undefined') {
+          await Tone.start();
+          state.synth = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: 'triangle' },
+            envelope: { attack: 0.02, decay: 0.12, sustain: 0.1, release: 0.25 },
+            volume: -18
+          }).toDestination();
+          state.audioInitialized = true;
+        }
+      } catch (err) {
+        // Fallback silently if audio context is blocked
+      }
+    }
+
+    function playPulseNote() {
+      if (state.isMuted || state.isPaused || state.activeTab !== 'feed') return;
+      const current = state.shorts.find(s => s.id === state.activeVideoId);
+      if (!current) return;
+      const theme = VISUAL_THEMES[current.theme] || VISUAL_THEMES.cyber;
+      const note = theme.notes[state.noteStep % theme.notes.length];
+      state.noteStep++;
+      if (state.synth && Tone && Tone.context && Tone.context.state === 'running') {
+        try {
+          state.synth.triggerAttackRelease(note, '16n');
+        } catch (_) {}
+      }
+    }
+
+    function playClickSound() {
+      if (state.isMuted || !state.synth || !Tone || Tone.context.state !== 'running') return;
+      try {
+        state.synth.triggerAttackRelease('C5', '32n');
+      } catch (_) {}
+    }
+
+    /**
+     * Get filtered list of shorts by category
+     */
+    function getFilteredShorts() {
+      if (state.activeCategory === 'All') return state.shorts;
+      return state.shorts.filter(item => item.category === state.activeCategory);
+    }
+
+    /**
+     * Render Category Pills
+     */
+    function renderCategoryPills() {
+      const container = document.getElementById('category-pills');
+      container.innerHTML = CATEGORIES.map(cat => {
+        const isActive = state.activeCategory === cat;
+        const activeClasses = isActive
+          ? 'bg-white text-zinc-950 shadow-md'
+          : 'bg-zinc-900/80 text-zinc-200 hover:bg-zinc-800 border border-white/10 backdrop-blur-md';
+        return `
+          <button
+            onclick="selectCategory('${cat.replace(/'/g, "\\'")}')"
+            class="px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap transition-all ${activeClasses}"
+          >
+            ${cat}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectCategory(category) {
+      state.activeCategory = category;
+      renderCategoryPills();
+      if (state.activeTab !== 'feed') {
+        switchTab('feed');
+      } else {
+        renderFeedTrack();
+      }
+    }
+
+    /**
+     * Render Vertical Snap Feed Cards
+     */
+    function renderFeedTrack() {
+      const track = document.getElementById('feed-track');
+      const items = getFilteredShorts();
+
+      if (items.length === 0) {
+        track.innerHTML = `
+          <div class="w-full h-full flex flex-col items-center justify-center p-6 text-center">
+            <p class="text-lg font-bold text-white mb-2">No shorts in "${state.activeCategory}" yet</p>
+            <p class="text-sm text-zinc-400 mb-4">Create one or switch back to All shorts.</p>
+            <button onclick="selectCategory('All')" class="px-4 py-2 rounded-full bg-rose-600 text-white text-sm font-semibold">Show All Shorts</button>
+          </div>
+        `;
+        return;
+      }
+
+      state.activeVideoId = items[0].id;
+      state.isPaused = false;
+
+      track.innerHTML = items.map((video, idx) => {
+        const theme = VISUAL_THEMES[video.theme] || VISUAL_THEMES.cyber;
+        const isLiked = state.likedIds.has(video.id);
+        const isSub = state.subscribedHandles.has(video.handle);
+        const likeCount = video.likes + (isLiked ? 1 : 0);
+        const progress = state.progressMap[video.id] || 0;
+
+        return `
+          <article
+            id="card-${video.id}"
+            data-video-id="${video.id}"
+            class="snap-card relative w-full h-full flex items-center justify-center py-0 md:py-3 px-0 sm:px-4 shrink-0"
+          >
+            <!-- Vertical 9:16 Stage on Desktop, Fullscreen on Mobile -->
+            <div
+              class="relative w-full h-full md:max-w-[430px] md:h-full md:rounded-[28px] overflow-hidden bg-gradient-to-br ${theme.gradient} border-0 md:border md:border-white/10 shadow-2xl flex flex-col justify-between"
+              onclick="handleCardTap(event, '${video.id}')"
+            >
+              <!-- Animated Motion Scene Background -->
+              <div class="absolute inset-0 overflow-hidden pointer-events-none">
+                <div class="scene-anim anim-float-slow absolute -top-16 -left-16 w-72 h-72 rounded-full ${theme.orb1} blur-3xl"></div>
+                <div class="scene-anim anim-float-reverse absolute bottom-20 -right-16 w-80 h-80 rounded-full ${theme.orb2} blur-3xl"></div>
+                <div class="scene-anim anim-pulse-ring absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full border border-white/15"></div>
+                <div class="scene-anim anim-pulse-ring absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-44 h-44 rounded-full border border-white/10"></div>
+
+                <!-- Subtle Grid Overlay -->
+                <div class="absolute inset-0 opacity-15" style="background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.45) 1px, transparent 0); background-size: 26px 26px;"></div>
+
+                <!-- Center Editorial Visual Card -->
+                <div class="relative z-10 h-full flex flex-col items-center justify-center px-7 text-center pointer-events-none pb-12">
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border ${theme.badgeBg} mb-4 backdrop-blur-md">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                    ${video.category}
+                  </span>
+
+                  <h2 class="text-2xl sm:text-3xl font-extrabold leading-tight tracking-tight text-white drop-shadow-lg max-w-xs">
+                    ${video.headline}
+                  </h2>
+
+                  <!-- Animated Equalizer Bars -->
+                  <div class="mt-6 flex items-end justify-center gap-1.5 h-7">
+                    <span class="eq-bar w-1.5 rounded-full bg-white/80" style="animation-delay: 0s;"></span>
+                    <span class="eq-bar w-1.5 rounded-full bg-white/80" style="animation-delay: 0.15s;"></span>
+                    <span class="eq-bar w-1.5 rounded-full bg-white/80" style="animation-delay: 0.3s;"></span>
+                    <span class="eq-bar w-1.5 rounded-full bg-white/80" style="animation-delay: 0.45s;"></span>
+                    <span class="eq-bar w-1.5 rounded-full bg-white/80" style="animation-delay: 0.2s;"></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Double-Tap Heart Burst Indicator -->
+              <div id="heart-burst-${video.id}" class="hidden absolute inset-0 z-30 items-center justify-center pointer-events-none">
+                <i data-lucide="heart" class="w-24 h-24 text-rose-500 fill-rose-500 drop-shadow-2xl anim-heart-pop"></i>
+              </div>
+
+              <!-- Center Play/Pause Pill Indicator -->
+              <div id="play-indicator-${video.id}" class="hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-16 h-16 rounded-full bg-black/65 backdrop-blur-md border border-white/15 flex items-center justify-center pointer-events-none">
+                <i id="play-indicator-icon-${video.id}" data-lucide="pause" class="w-7 h-7 text-white"></i>
+              </div>
+
+              <!-- Top Controls Inside Card (Mute Toggle + Index Badge) -->
+              <div class="relative z-20 flex items-center justify-between px-4 pt-14 md:pt-4">
+                <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-black/45 text-zinc-200 backdrop-blur-md border border-white/10">
+                  ${idx + 1} / ${items.length} • ${video.durationSec}s
+                </span>
+
+                <button
+                  onclick="event.stopPropagation(); toggleMute();"
+                  aria-label="Toggle Mute"
+                  class="p-2.5 rounded-full bg-black/45 hover:bg-black/70 text-white backdrop-blur-md border border-white/10 transition"
+                >
+                  <i data-lucide="${state.isMuted ? 'volume-x' : 'volume-2'}" class="w-4 h-4 mute-icon"></i>
+                </button>
+              </div>
+
+              <!-- Bottom Gradient Overlay: Creator Info + Action Rail -->
+              <div class="relative z-20 bg-gradient-to-t from-black/90 via-black/55 to-transparent pt-14 pb-20 md:pb-5 px-4 flex items-end justify-between gap-3">
+                <!-- Creator Handle, Subscribe & Caption -->
+                <div class="flex-1 min-w-0 pr-2">
+                  <div class="flex items-center gap-2.5 mb-2">
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-tr ${video.avatarGradient} flex items-center justify-center text-xs font-extrabold text-white shrink-0 ring-2 ring-white/25">
+                      ${video.avatarText}
+                    </div>
+                    <div class="min-w-0">
+                      <p class="text-sm font-bold text-white truncate">${video.creator}</p>
+                      <p class="text-xs text-zinc-300 truncate">${video.handle}</p>
+                    </div>
+                    <button
+                      id="sub-btn-${video.id}"
+                      onclick="event.stopPropagation(); toggleSubscribe('${video.handle}');"
+                      class="ml-1 px-3 py-1 rounded-full text-xs font-bold transition shrink-0 ${
+                        isSub
+                          ? 'bg-zinc-800/90 text-zinc-200 border border-zinc-600'
+                          : 'bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-600/30'
+                      }"
+                    >
+                      ${isSub ? 'Subscribed' : 'Subscribe'}
+                    </button>
+                  </div>
+
+                  <p class="text-xs sm:text-sm text-zinc-100 leading-snug line-clamp-2 mb-2.5">
+                    ${video.caption}
+                  </p>
+
+                  <!-- Sound Ticker -->
+                  <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md max-w-full">
+                    <i data-lucide="music-2" class="w-3.5 h-3.5 text-rose-400 shrink-0"></i>
+                    <span class="text-[11px] font-medium text-zinc-200 truncate">${video.sound}</span>
+                  </div>
+                </div>
+
+                <!-- Right Vertical Action Rail -->
+                <div class="flex flex-col items-center gap-4 shrink-0">
+                  <!-- Like -->
+                  <button
+                    onclick="event.stopPropagation(); toggleLike('${video.id}');"
+                    class="flex flex-col items-center gap-1 group focus:outline-none"
+                  >
+                    <div class="w-11 h-11 rounded-full bg-zinc-900/75 hover:bg-zinc-800 border border-white/10 backdrop-blur-md flex items-center justify-center transition group-active:scale-90">
+                      <i
+                        id="like-icon-${video.id}"
+                        data-lucide="heart"
+                        class="w-5 h-5 transition ${isLiked ? 'text-rose-500 fill-rose-500 scale-110' : 'text-white'}"
+                      ></i>
+                    </div>
+                    <span id="like-count-${video.id}" class="text-[11px] font-bold text-zinc-200">${formatCount(likeCount)}</span>
+                  </button>
+
+                  <!-- Comment -->
+                  <button
+                    onclick="event.stopPropagation(); openCommentModal('${video.id}');"
+                    class="flex flex-col items-center gap-1 group focus:outline-none"
+                  >
+                    <div class="w-11 h-11 rounded-full bg-zinc-900/75 hover:bg-zinc-800 border border-white/10 backdrop-blur-md flex items-center justify-center transition group-active:scale-90">
+                      <i data-lucide="message-circle" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <span id="comment-count-${video.id}" class="text-[11px] font-bold text-zinc-200">${formatCount(video.comments.length)}</span>
+                  </button>
+
+                  <!-- Share -->
+                  <button
+                    onclick="event.stopPropagation(); shareShort('${video.id}');"
+                    class="flex flex-col items-center gap-1 group focus:outline-none"
+                  >
+                    <div class="w-11 h-11 rounded-full bg-zinc-900/75 hover:bg-zinc-800 border border-white/10 backdrop-blur-md flex items-center justify-center transition group-active:scale-90">
+                      <i data-lucide="share-2" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <span id="share-count-${video.id}" class="text-[11px] font-bold text-zinc-200">${formatCount(video.shares)}</span>
+                  </button>
+
+                  <!-- Spinning Sound Disc -->
+                  <button
+                    onclick="event.stopPropagation(); toggleMute();"
+                    title="Sound Disc"
+                    class="vinyl-disc anim-spin-vinyl w-10 h-10 rounded-full bg-gradient-to-tr from-zinc-800 via-zinc-700 to-rose-500 p-1 border border-white/20 flex items-center justify-center shadow-lg"
+                  >
+                    <div class="w-full h-full rounded-full bg-zinc-950 flex items-center justify-center">
+                      <div class="w-2.5 h-2.5 rounded-full bg-rose-500"></div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Bottom Progress Bar -->
+              <div class="absolute bottom-16 md:bottom-0 inset-x-0 h-1 bg-white/15 z-30">
+                <div
+                  id="progress-${video.id}"
+                  class="h-full bg-gradient-to-r from-rose-500 via-pink-500 to-amber-400 transition-[width] duration-150"
+                  style="width: ${progress}%;"
+                ></div>
+              </div>
+            </div>
+          </article>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+      setupFeedObserver();
+      syncAnimationStates();
+    }
+
+    /**
+     * Observe which vertical video card is centered in the snap feed
+     */
+    let feedObserver = null;
+    function setupFeedObserver() {
+      const container = document.getElementById('view-feed');
+      if (feedObserver) feedObserver.disconnect();
+
+      const cards = container.querySelectorAll('.snap-card');
+      if (!cards.length) return;
+
+      feedObserver = new IntersectionObserver(
+        entries => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting && entry.intersectionRatio >= 0.65) {
+              const vidId = entry.target.getAttribute('data-video-id');
+              if (vidId && state.activeVideoId !== vidId) {
+                state.activeVideoId = vidId;
+                state.isPaused = false;
+                syncAnimationStates();
+              }
+            }
+          });
+        },
+        {
+          root: container,
+          threshold: [0.65]
+        }
+      );
+
+      cards.forEach(card => feedObserver.observe(card));
+    }
+
+    /**
+     * Sync visual animations and pause/mute indicators
+     */
+    function syncAnimationStates() {
+      const items = getFilteredShorts();
+      items.forEach(video => {
+        const card = document.getElementById(`card-${video.id}`);
+        if (!card) return;
+        const isCurrent = video.id === state.activeVideoId;
+        const shouldRun = isCurrent && !state.isPaused && state.activeTab === 'feed';
+
+        card.querySelectorAll('.scene-anim, .eq-bar, .vinyl-disc').forEach(el => {
+          if (shouldRun) {
+            el.classList.remove('anim-paused');
+          } else {
+            el.classList.add('anim-paused');
+          }
+        });
+      });
+
+      // Update mute icons across all cards
+      document.querySelectorAll('.mute-icon').forEach(icon => {
+        icon.setAttribute('data-lucide', state.isMuted ? 'volume-x' : 'volume-2');
+      });
+
+      const badge = document.getElementById('audio-status-badge');
+      if (badge) {
+        if (!state.isMuted && !state.isPaused && state.activeTab === 'feed') {
+          badge.textContent = 'Live Pulse';
+          badge.className = 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold';
+        } else {
+          badge.textContent = state.isMuted ? 'Muted' : 'Standby';
+          badge.className = 'text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 font-medium';
+        }
+      }
+
+      lucide.createIcons();
+    }
+
+    /**
+     * Single tap toggles play/pause; double tap triggers like burst
+     */
+    let lastTapTime = 0;
+    let singleTapTimer = null;
+
+    function handleCardTap(event, videoId) {
+      const now = Date.now();
+      const timeDiff = now - lastTapTime;
+      lastTapTime = now;
+
+      if (timeDiff < 280) {
+        clearTimeout(singleTapTimer);
+        triggerDoubleTapLike(videoId);
+      } else {
+        singleTapTimer = setTimeout(() => {
+          togglePlayPause(videoId);
+        }, 280);
+      }
+    }
+
+    function togglePlayPause(videoId) {
+      if (state.activeVideoId !== videoId) {
+        state.activeVideoId = videoId;
+        state.isPaused = false;
+      } else {
+        state.isPaused = !state.isPaused;
+      }
+
+      syncAnimationStates();
+
+      const indicator = document.getElementById(`play-indicator-${videoId}`);
+      const icon = document.getElementById(`play-indicator-icon-${videoId}`);
+      if (indicator && icon) {
+        icon.setAttribute('data-lucide', state.isPaused ? 'pause' : 'play');
+        lucide.createIcons();
+        indicator.classList.remove('hidden');
+        indicator.classList.add('flex');
+        setTimeout(() => {
+          indicator.classList.add('hidden');
+          indicator.classList.remove('flex');
+        }, 650);
+      }
+    }
+
+    function triggerDoubleTapLike(videoId) {
+      if (!state.likedIds.has(videoId)) {
+        toggleLike(videoId);
+      }
+      const burst = document.getElementById(`heart-burst-${videoId}`);
+      if (burst) {
+        burst.classList.remove('hidden');
+        burst.classList.add('flex');
+        const icon = burst.querySelector('svg');
+        if (icon) {
+          icon.classList.remove('anim-heart-pop');
+          void icon.offsetWidth;
+          icon.classList.add('anim-heart-pop');
+        }
+        setTimeout(() => {
+          burst.classList.add('hidden');
+          burst.classList.remove('flex');
+        }, 760);
+      }
+    }
+
+    async function toggleMute() {
+      await initAudioEngine();
+      state.isMuted = !state.isMuted;
+      if (!state.isMuted) {
+        playClickSound();
+        showToast('Sound pulse unmuted');
+      } else {
+        showToast('Sound muted');
+      }
+      syncAnimationStates();
+    }
+
+    /**
+     * Like / Unlike Short
+     */
+    function toggleLike(videoId) {
+      const video = state.shorts.find(s => s.id === videoId);
+      if (!video) return;
+
+      const wasLiked = state.likedIds.has(videoId);
+      if (wasLiked) {
+        state.likedIds.delete(videoId);
+      } else {
+        state.likedIds.add(videoId);
+        playClickSound();
+      }
+
+      const isNowLiked = state.likedIds.has(videoId);
+      const countEl = document.getElementById(`like-count-${videoId}`);
+      const iconEl = document.getElementById(`like-icon-${videoId}`);
+      const newTotal = video.likes + (isNowLiked ? 1 : 0);
+
+      if (countEl) countEl.textContent = formatCount(newTotal);
+      if (iconEl) {
+        if (isNowLiked) {
+          iconEl.classList.add('text-rose-500', 'fill-rose-500', 'scale-110');
+          iconEl.classList.remove('text-white');
+        } else {
+          iconEl.classList.remove('text-rose-500', 'fill-rose-500', 'scale-110');
+          iconEl.classList.add('text-white');
+        }
+      }
+
+      updateProfileStats();
+    }
+
+    /**
+     * Subscribe / Unsubscribe Creator Channel
+     */
+    function toggleSubscribe(handle) {
+      const isSub = state.subscribedHandles.has(handle);
+      if (isSub) {
+        state.subscribedHandles.delete(handle);
+        showToast(`Unsubscribed from ${handle}`);
+      } else {
+        state.subscribedHandles.add(handle);
+        playClickSound();
+        showToast(`Subscribed to ${handle}`);
+      }
+
+      // Sync all buttons for this handle across visible cards
+      state.shorts.forEach(s => {
+        if (s.handle === handle) {
+          const btn = document.getElementById(`sub-btn-${s.id}`);
+          if (btn) {
+            const nowSub = state.subscribedHandles.has(handle);
+            btn.textContent = nowSub ? 'Subscribed' : 'Subscribe';
+            btn.className = nowSub
+              ? 'ml-1 px-3 py-1 rounded-full text-xs font-bold transition shrink-0 bg-zinc-800/90 text-zinc-200 border border-zinc-600'
+              : 'ml-1 px-3 py-1 rounded-full text-xs font-bold transition shrink-0 bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-600/30';
+          }
+        }
+      });
+
+      updateProfileStats();
+    }
+
+    /**
+     * Share Short & increment counter
+     */
+    function shareShort(videoId) {
+      const video = state.shorts.find(s => s.id === videoId);
+      if (!video) return;
+
+      video.shares += 1;
+      const shareCountEl = document.getElementById(`share-count-${videoId}`);
+      if (shareCountEl) shareCountEl.textContent = formatCount(video.shares);
+
+      const shareUrl = `${window.location.href.split('#')[0]}#short-${video.id}`;
+      try {
+        const tempInput = document.createElement('input');
+        tempInput.value = shareUrl;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+      } catch (_) {}
+
+      playClickSound();
+      showToast('Short link copied to clipboard!');
+    }
+
+    /**
+     * Comment Modal Logic
+     */
+    function openCommentModal(videoId) {
+      state.commentModalVideoId = videoId;
+      renderComments(videoId);
+      const modal = document.getElementById('comment-modal');
+      modal.classList.remove('hidden');
+      lucide.createIcons();
+      setTimeout(() => {
+        const input = document.getElementById('comment-input');
+        if (input) input.focus();
+      }, 100);
+    }
+
+    function renderComments(videoId) {
+      const video = state.shorts.find(s => s.id === videoId);
+      if (!video) return;
+
+      const subtitle = document.getElementById('comment-modal-subtitle');
+      const list = document.getElementById('comment-list');
+      subtitle.textContent = `${video.comments.length} ${video.comments.length === 1 ? 'comment' : 'comments'} • ${video.handle}`;
+
+      if (video.comments.length === 0) {
+        list.innerHTML = `
+          <div class="py-10 text-center text-zinc-500 text-sm">
+            No comments yet. Start the conversation!
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = video.comments.map(c => `
+        <div class="p-3 rounded-2xl bg-zinc-950/75 border border-zinc-800/70">
+          <p class="text-xs font-bold text-rose-400 mb-0.5">${escapeHtml(c.author)}</p>
+          <p class="text-sm text-zinc-200 leading-snug">${escapeHtml(c.text)}</p>
+        </div>
+      `).join('');
+    }
+
+    function submitComment(event) {
+      event.preventDefault();
+      const input = document.getElementById('comment-input');
+      const text = input.value.trim();
+      if (!text || !state.commentModalVideoId) return;
+
+      const video = state.shorts.find(s => s.id === state.commentModalVideoId);
+      if (!video) return;
+
+      video.comments.unshift({
+        author: '@aarav.creates',
+        text
+      });
+
+      input.value = '';
+      renderComments(video.id);
+
+      const countEl = document.getElementById(`comment-count-${video.id}`);
+      if (countEl) countEl.textContent = formatCount(video.comments.length);
+
+      playClickSound();
+      showToast('Comment posted');
+    }
+
+    /**
+     * Create Short Modal Logic
+     */
+    function openCreateModal() {
+      const modal = document.getElementById('create-modal');
+      modal.classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function handleCreateShort(event) {
+      event.preventDefault();
+      const headline = document.getElementById('create-headline').value.trim();
+      const category = document.getElementById('create-category').value;
+      const theme = document.getElementById('create-theme').value;
+      const caption = document.getElementById('create-caption').value.trim();
+      const soundInput = document.getElementById('create-sound').value.trim();
+
+      if (!headline || !caption) return;
+
+      const newShort = {
+        id: 'vid-' + Date.now(),
+        creator: 'Aarav Studio',
+        handle: '@aarav.creates',
+        avatarText: 'RP',
+        avatarGradient: 'from-rose-500 via-pink-500 to-amber-400',
+        category,
+        theme,
+        headline,
+        caption,
+        sound: soundInput || 'Pulse Original Beat — Studio Mix',
+        durationSec: 15,
+        likes: 1,
+        shares: 0,
+        userCreated: true,
+        comments: []
+      };
+
+      state.shorts.unshift(newShort);
+      state.progressMap[newShort.id] = 0;
+      state.activeCategory = 'All';
+      renderCategoryPills();
+
+      document.getElementById('create-form').reset();
+      closeModal('create-modal');
+      switchTab('feed');
+      renderFeedTrack();
+      updateProfileStats();
+
+      const feedEl = document.getElementById('view-feed');
+      if (feedEl) feedEl.scrollTop = 0;
+
+      playClickSound();
+      showToast('Short published to your feed!');
+    }
+
+    /**
+     * Close & Backdrop Helpers
+     */
+    function closeModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal) modal.classList.add('hidden');
+      if (modalId === 'comment-modal') {
+        state.commentModalVideoId = null;
+      }
+    }
+
+    function handleBackdropClick(event, modalId) {
+      if (event.target.id === modalId) {
+        closeModal(modalId);
+      }
+    }
+
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    /**
+     * Navigation Between Feed, Explore, and Profile Views
+     */
+    function switchTab(tabName) {
+      state.activeTab = tabName;
+
+      const feedView = document.getElementById('view-feed');
+      const exploreView = document.getElementById('view-explore');
+      const profileView = document.getElementById('view-profile');
+      const topCategoryBar = document.getElementById('top-category-bar');
+
+      feedView.classList.toggle('hidden', tabName !== 'feed');
+      exploreView.classList.toggle('hidden', tabName !== 'explore');
+      profileView.classList.toggle('hidden', tabName !== 'profile');
+
+      // Show category pills on Feed and Explore
+      topCategoryBar.classList.toggle('hidden', tabName === 'profile');
+
+      // Update Desktop & Mobile Nav Active States
+      ['feed', 'explore', 'profile'].forEach(t => {
+        const dBtn = document.getElementById(`desk-nav-${t}`);
+        if (dBtn) {
+          dBtn.className = t === tabName
+            ? 'w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-semibold transition-all bg-zinc-900 text-white'
+            : 'w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-900/60 transition-all';
+        }
+        const mBtn = document.getElementById(`mob-nav-${t}`);
+        if (mBtn) {
+          mBtn.className = t === tabName
+            ? 'flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-white'
+            : 'flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-zinc-400';
+        }
+      });
+
+      if (tabName === 'explore') {
+        renderExploreGrid();
+      } else if (tabName === 'profile') {
+        updateProfileStats();
+        renderProfileContent();
+      }
+
+      syncAnimationStates();
+      lucide.createIcons();
+    }
+
+    /**
+     * Jump to a specific short from Explore or Profile
+     */
+    function jumpToShort(videoId) {
+      const existsInCurrent = getFilteredShorts().some(s => s.id === videoId);
+      if (!existsInCurrent) {
+        state.activeCategory = 'All';
+        renderCategoryPills();
+      }
+      switchTab('feed');
+      renderFeedTrack();
+
+      setTimeout(() => {
+        const card = document.getElementById(`card-${videoId}`);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          state.activeVideoId = videoId;
+          state.isPaused = false;
+          syncAnimationStates();
+        }
+      }, 60);
+    }
+
+    /**
+     * Render Explore Grid
+     */
+    function renderExploreGrid() {
+      const grid = document.getElementById('explore-grid');
+      const searchVal = (document.getElementById('explore-search')?.value || '').trim().toLowerCase();
+
+      const filtered = getFilteredShorts().filter(item => {
+        if (!searchVal) return true;
+        return (
+          item.headline.toLowerCase().includes(searchVal) ||
+          item.creator.toLowerCase().includes(searchVal) ||
+          item.handle.toLowerCase().includes(searchVal) ||
+          item.category.toLowerCase().includes(searchVal)
+        );
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-12 text-center text-zinc-400 text-sm">
+            No matching shorts found.
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(video => {
+        const theme = VISUAL_THEMES[video.theme] || VISUAL_THEMES.cyber;
+        const isLiked = state.likedIds.has(video.id);
+        const totalLikes = video.likes + (isLiked ? 1 : 0);
+
+        return `
+          <button
+            onclick="jumpToShort('${video.id}')"
+            class="group relative aspect-[9/14] rounded-2xl overflow-hidden bg-gradient-to-br ${theme.gradient} border border-white/10 p-4 flex flex-col justify-between text-left transition hover:scale-[1.02] hover:border-rose-500/50 focus:outline-none"
+          >
+            <div class="flex items-center justify-between w-full">
+              <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-black/45 text-zinc-200 backdrop-blur-sm">
+                ${video.category}
+              </span>
+              <span class="text-[11px] font-semibold text-white/80">${video.durationSec}s</span>
+            </div>
+
+            <div>
+              <h3 class="text-sm sm:text-base font-extrabold text-white leading-snug line-clamp-3 mb-2">
+                ${video.headline}
+              </h3>
+              <div class="flex items-center justify-between text-xs text-zinc-300">
+                <span class="truncate">${video.handle}</span>
+                <span class="inline-flex items-center gap-1 font-semibold shrink-0">
+                  <i data-lucide="heart" class="w-3.5 h-3.5 text-rose-400 fill-rose-400"></i>
+                  ${formatCount(totalLikes)}
+                </span>
+              </div>
+            </div>
+          </button>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    /**
+     * Profile View Stats & Sub-tabs
+     */
+    function updateProfileStats() {
+      const followingEl = document.getElementById('stat-following');
+      const likedEl = document.getElementById('stat-liked');
+      const createdEl = document.getElementById('stat-created');
+
+      const createdCount = state.shorts.filter(s => s.userCreated).length;
+      if (followingEl) followingEl.textContent = String(state.subscribedHandles.size);
+      if (likedEl) likedEl.textContent = String(state.likedIds.size);
+      if (createdEl) createdEl.textContent = String(createdCount);
+    }
+
+    function setProfileTab(subTab) {
+      state.profileTab = subTab;
+      ['liked', 'created', 'following'].forEach(t => {
+        const btn = document.getElementById(`prof-tab-${t}`);
+        if (btn) {
+          btn.className = t === subTab
+            ? 'px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold bg-white text-zinc-950 transition'
+            : 'px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold bg-zinc-900 text-zinc-400 hover:text-white transition';
+        }
+      });
+      renderProfileContent();
+    }
+
+    function renderProfileContent() {
+      const container = document.getElementById('profile-content');
+      if (!container) return;
+
+      if (state.profileTab === 'following') {
+        const handles = Array.from(state.subscribedHandles);
+        if (handles.length === 0) {
+          container.innerHTML = `<p class="col-span-full text-sm text-zinc-400 py-8 text-center">You aren't subscribed to any channels yet.</p>`;
+          return;
+        }
+        container.innerHTML = handles.map(handle => {
+          const creatorObj = state.shorts.find(s => s.handle === handle);
+          const name = creatorObj ? creatorObj.creator : handle;
+          return `
+            <div class="p-4 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-between gap-3">
+              <div>
+                <p class="text-sm font-bold text-white">${escapeHtml(name)}</p>
+                <p class="text-xs text-zinc-400">${escapeHtml(handle)}</p>
+              </div>
+              <button onclick="toggleSubscribe('${handle}'); renderProfileContent();" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition">
+                Subscribed
+              </button>
+            </div>
+          `;
+        }).join('');
+        return;
+      }
+
+      const list = state.shorts.filter(item => {
+        if (state.profileTab === 'liked') return state.likedIds.has(item.id);
+        if (state.profileTab === 'created') return item.userCreated;
+        return false;
+      });
+
+      if (list.length === 0) {
+        const emptyMsg = state.profileTab === 'liked'
+          ? 'No liked shorts yet. Double-tap any short to like it!'
+          : 'You haven’t created any shorts yet. Tap "+ New Short" to publish one!';
+        container.innerHTML = `<p class="col-span-full text-sm text-zinc-400 py-8 text-center">${emptyMsg}</p>`;
+        return;
+      }
+
+      container.innerHTML = list.map(video => {
+        const theme = VISUAL_THEMES[video.theme] || VISUAL_THEMES.cyber;
+        return `
+          <button
+            onclick="jumpToShort('${video.id}')"
+            class="p-4 rounded-2xl bg-gradient-to-br ${theme.gradient} border border-white/10 text-left hover:scale-[1.01] transition focus:outline-none"
+          >
+            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/45 text-zinc-200">${video.category}</span>
+            <h3 class="text-base font-extrabold text-white mt-2.5 mb-1 line-clamp-2">${escapeHtml(video.headline)}</h3>
+            <p class="text-xs text-zinc-300 truncate">${escapeHtml(video.handle)} • ${video.durationSec}s</p>
+          </button>
+        `;
+      }).join('');
+    }
+
+    /**
+     * Scroll feed by step (-1 up, +1 down)
+     */
+    function scrollStep(direction) {
+      const feedEl = document.getElementById('view-feed');
+      if (!feedEl || state.activeTab !== 'feed') return;
+      const height = feedEl.clientHeight;
+      feedEl.scrollBy({
+        top: direction * height,
+        behavior: 'smooth'
+      });
+    }
+
+    /**
+     * Keyboard Shortcuts for Desktop Users
+     */
+    document.addEventListener('keydown', event => {
+      const activeTag = document.activeElement?.tagName;
+      const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT';
+
+      if (event.key === 'Escape') {
+        closeModal('comment-modal');
+        closeModal('create-modal');
+        return;
+      }
+
+      if (isTyping || state.activeTab !== 'feed') return;
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        scrollStep(1);
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        scrollStep(-1);
+      } else if (event.key === ' ') {
+        event.preventDefault();
+        togglePlayPause(state.activeVideoId);
+      } else if (event.key.toLowerCase() === 'm') {
+        toggleMute();
+      }
+    });
+
+    /**
+     * Playback Progress & Audio Pulse Loop
+     */
+    let tickCounter = 0;
+    setInterval(() => {
+      if (state.activeTab !== 'feed' || state.isPaused) return;
+      const currentVideo = state.shorts.find(s => s.id === state.activeVideoId);
+      if (!currentVideo) return;
+
+      const stepPct = (0.15 / currentVideo.durationSec) * 100;
+      const prevPct = state.progressMap[currentVideo.id] || 0;
+      const nextPct = prevPct + stepPct >= 100 ? 0 : prevPct + stepPct;
+      state.progressMap[currentVideo.id] = nextPct;
+
+      const bar = document.getElementById(`progress-${currentVideo.id}`);
+      if (bar) {
+        bar.style.width = `${nextPct.toFixed(1)}%`;
+      }
+
+      tickCounter++;
+      if (tickCounter % 3 === 0) {
+        playPulseNote();
+      }
+    }, 150);
+
+    /**
+     * Boot Application
+     */
+    window.addEventListener('DOMContentLoaded', () => {
+      renderCategoryPills();
+      renderFeedTrack();
+      updateProfileStats();
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
